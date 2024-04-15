@@ -1,7 +1,6 @@
 package com.project.ssm.chat.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+
 import com.project.ssm.chat.exception.ChatRoomAccessException;
 import com.project.ssm.chat.exception.ChatRoomNotFoundException;
 import com.project.ssm.chat.exception.MessageAccessException;
@@ -20,14 +19,8 @@ import com.project.ssm.member.model.Member;
 import com.project.ssm.member.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.springframework.kafka.annotation.KafkaListener;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
-import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
-
-import java.io.IOException;
 import java.util.List;
 
 
@@ -41,25 +34,8 @@ public class MessageService {
     private final MemberRepository memberRepository;
     private final ChatRoomRepository chatRoomRepository;
     private final RoomParticipantsRepository roomParticipantsRepository;
-    private final KafkaTemplate<String, Object> kafkaTemplate;
-    private final ObjectMapper objectMapper;
     private final EmittersService emittersService;
 
-    @KafkaListener(topicPattern = "chat-room-.*")
-    public void consumeMessage(ConsumerRecord<String, Object> record) throws JsonProcessingException {
-        String message = objectMapper.writeValueAsString(record.value());
-        SendMessageReq sendMessageReq = objectMapper.readValue(message, SendMessageReq.class);
-        messagingTemplate.convertAndSend("/sub/room/" + sendMessageReq.getChatRoomId(), sendMessageReq);
-        List<RoomParticipants> memberIdsByChatRoomName = memberRepository.findMemberNameByChatRoomName(sendMessageReq.getChatRoomId());
-        if(!memberIdsByChatRoomName.isEmpty()){
-            for (RoomParticipants roomParticipants : memberIdsByChatRoomName) {
-                String memberId = roomParticipants.getMember().getMemberId();
-                if(!memberId.equals(record.key())){
-                    emittersService.sendAlarmToClients(memberId, sendMessageReq.getMemberName() +": "+ sendMessageReq.getMessage());
-                }
-            }
-        }
-    }
 
     public void sendMessage(String chatRoomId, SendMessageReq sendMessageDto) {
         if (!sendMessageDto.getMessage().isEmpty()) {
@@ -68,10 +44,18 @@ public class MessageService {
 
             ChatRoom chatRoom = chatRoomRepository.findByChatRoomId(chatRoomId).orElseThrow(() ->
                     ChatRoomNotFoundException.forNotFoundChatRoom());
-
+            messagingTemplate.convertAndSend("/sub/room/" + sendMessageDto.getChatRoomId(), sendMessageDto);
             messageRepository.save(Message.createMessage(sendMessageDto.getMessage(), member, chatRoom));
-            String topic = "chat-room-" + chatRoomId;
-            kafkaTemplate.send(topic, "" + member.getMemberId().toString(), sendMessageDto);
+
+            List<RoomParticipants> memberIdsByChatRoomName = memberRepository.findMemberNameByChatRoomName(sendMessageDto.getChatRoomId());
+            if(!memberIdsByChatRoomName.isEmpty()){
+                for (RoomParticipants roomParticipants : memberIdsByChatRoomName) {
+                    String memberId = roomParticipants.getMember().getMemberId();
+                    if(!memberId.equals(sendMessageDto.getMemberId())){
+                        emittersService.sendAlarmToClients(memberId, sendMessageDto.getMemberName() +": "+ sendMessageDto.getMessage());
+                    }
+                }
+            }
         } else {
             throw MessageAccessException.forNotContent();
         }

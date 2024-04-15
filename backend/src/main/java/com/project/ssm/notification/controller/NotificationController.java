@@ -4,9 +4,7 @@ package com.project.ssm.notification.controller;
 import com.project.ssm.notification.service.EmittersService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.http.MediaType;
-import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -47,10 +45,5 @@ public class NotificationController {
         }
 
         return emitter;
-    }
-
-    @KafkaListener(topics = "notificationTopic", groupId = "#{@kafkaListenerGroupId}")
-    public void sendAlarmToClients(ConsumerRecord<String, String> record) {
-        emittersService.sendAlarmToClients(record.key(), record.value());
     }
 }

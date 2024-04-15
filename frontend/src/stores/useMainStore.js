@@ -125,6 +125,11 @@ export const useMainStore = defineStore("main", {
         console.log(event.data)
       })
       evtSource.addEventListener("notification", function (event) {
+        toast.success(event.data, {
+          timeout: timeout,
+        })
+        
+        
         if (Notification.permission === "granted") {
           new Notification("알람 이벤트", {
             body: event.data,
