@@ -31,7 +31,7 @@ var newEvent = function (start, end, eventType) {
     editEnd.val(end);
     editDesc.val('');
     editMember.val('');    
-    console.log(editMember.val(''));
+    // console.log(editMember.val(''));
     editRoom.val('');
 
     addBtnContainer.show();
@@ -56,7 +56,7 @@ var newEvent = function (start, end, eventType) {
             backgroundColor: editColor.val(),
             textColor: '#ffffff',
             allDay: false,
-            roomIdx: editRoom.val()
+            roomIdx: editRoom.val() === '' ? null : Number(editRoom.val())
         };
 
         if (eventData.start > eventData.end) {
@@ -115,10 +115,24 @@ var newEvent = function (start, end, eventType) {
                 "type":eventData.type,
             }),
             success: function (response) {
-                console.log(response)
-                //DB연동시 중복이벤트 방지를 위한
-                $('#calendar').fullCalendar('removeEvents');
-                $('#calendar').fullCalendar('refetchEvents');
+                if (response.code === 'CALENDAR_001') {
+                    $('#calendar').fullCalendar('removeEvents');
+                    $('#calendar').fullCalendar('refetchEvents');
+                }
+            },
+            error: function (error) {
+                if(error.responseJSON.code === 'COMMON-001' || error.responseJSON.code === 'COMMON-002' || error.responseJSON.code === 'COMMON-003'){
+                    alert(error.responseJSON.message);
+                } else if (error.responseJSON.code === 'ACCOUNT-001' || error.responseJSON.code === 'ACCOUNT-002' || error.responseJSON.code === 'ACCOUNT-003' || error.responseJSON.code === 'ACCOUNT-004') {
+                    alert(error.responseJSON.message);
+                } else if (error.responseJSON.code === 'MEMBER-008') {
+                    alert(error.responseJSON.message);
+                }
+                else if (error.responseJSON.code ==='RESERVATION_007') {
+                    alert(error.responseJSON.message);
+                } else {
+                    alert('오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+                }
             }
         });
     });

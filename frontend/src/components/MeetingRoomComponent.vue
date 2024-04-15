@@ -3,7 +3,7 @@
     <div class="meeting-room-container">
       <div class="meeting-rooms">
         <div v-for="(room, index) in mainStore.meetingRooms" :key="index"
-          :class="{ 'room': true, 'available': room.isAvailable, 'unavailable': !room.isAvailable }">
+             :class="{ 'room': true, 'available': room.isAvailable, 'unavailable': !room.isAvailable }">
           <button @click="selectMeetingRoom(room.meetingRoomIdx)">{{ room.meetingRoomName }}</button>
         </div>
       </div>
@@ -16,6 +16,7 @@
           <div class="color-box"></div>
           이용 불가
         </div>
+        <MeetingRoomModalComponent v-if="showModal" @close="showModal = false"/>
       </div>
     </div>
   </div>
@@ -24,11 +25,16 @@
 <script>
 import { mapStores } from "pinia";
 import { useMainStore } from "@/stores/useMainStore";
-import axios from "axios";
-const backend = process.env.VUE_APP_API_ENDPOINT;
+import { useMeetingRoomStore } from '@/stores/useMeetingRoomStore';
+import MeetingRoomModalComponent from './MeetingRoomModalComponent.vue';
+
 export default {
+  components: {
+    MeetingRoomModalComponent,
+  },
   data() {
     return {
+      showModal: false,
     };
   },
   computed: {
@@ -36,9 +42,9 @@ export default {
   },
   methods: {
     async selectMeetingRoom(roomIdx) {
-      console.log(roomIdx);
-      const response = await axios.get(`${backend}/meetingroom/select/` + roomIdx);
-      console.log(response);
+      const meetingRoomStore = useMeetingRoomStore();
+      await meetingRoomStore.fetchRoomReservations(roomIdx, this.$router);
+      this.showModal = true;
     },
   },
 };

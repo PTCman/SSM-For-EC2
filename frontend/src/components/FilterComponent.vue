@@ -5,17 +5,18 @@
             <div class="panel-body">
                 <div class="col-lg-6">
                     <label for="calendar_view">채팅방List</label>
-                    <div class="input-group" @click="chatRoomStore.getRoomList()">
-                        <select class="filter" id="type_filter">
+                    <div class="input-group filter" @click="chatRoomStore.getRoomList(this.$router)">
+                        <select v-if="chatRoomStore.roomList.length > 0" class="filter" id="type_filter" v-model="mainStore.selectedChatRoom"
+                            @change="mainStore.onChatRoomChange(); chatRoomChange()">
                             <option value="일반일정">일반일정</option>
                             <option v-for="(chatRoom, index) in chatRoomStore.roomList" :key="index"
-                                :value="chatRoom.chatRoomName"> {{ chatRoom.chatRoomName }}</option>
+                                :value="chatRoom"> {{ chatRoom.chatRoomName }}</option>
                         </select>
                     </div>
                 </div>
                 <div class="col-lg-6">
                     <label for="calendar_view">등록자별</label>
-                    <button @click="mainStore.openComponent"><i class="fa fa-plus"></i></button>
+                    <button @click="mainStore.openComponent()"><i class="fa fa-plus"></i></button>
                     <MemberSearchComponent></MemberSearchComponent>
                     <div class="input-group filter">
                         <label v-for="(member, index) in mainStore.filteredMemberNames" :key="index" :value="member"
@@ -24,7 +25,6 @@
                             {{ member }}</label>
                     </div>
                 </div>
-
             </div>
         </div>
         <!-- /.filter panel -->
@@ -40,10 +40,10 @@ import MemberSearchComponent from "./MemberSearchComponent.vue";
 export default {
     data() {
         return {
-
+          
         }
     },
-    components:{
+    components: {
         MemberSearchComponent
     },
     computed: {
@@ -67,7 +67,11 @@ export default {
         document.body.appendChild(script4);
     },
     methods: {
-        
+      chatRoomChange() {
+      if (this.mainStore.selectedChatRoom && typeof updateChatRoomName === "function") {
+        updateChatRoomName(this.mainStore.selectedChatRoom.chatRoomName);
+      }
+    }
     },
 }
 </script>

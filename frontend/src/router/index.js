@@ -5,6 +5,7 @@ import LoginPage from "@/pages/LoginPage.vue";
 import SignUpPage from "@/pages/SignUpPage.vue";
 import ChangeInfoPage from "@/pages/ChangeInfoPage.vue";
 import ErrorPage from "@/pages/ErrorPage.vue";
+import Error404Page from "@/pages/Error404Page.vue";
 
 
 const router = createRouter({
@@ -13,9 +14,10 @@ const router = createRouter({
     { path: '/', component: MainPage },
     { path: '/login', component: LoginPage },
     { path: '/signup', component: SignUpPage },
-    { path: '/:roomId', component: MainPage },
+    { path: '/:roomId([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})', component: MainPage },
     { path: '/update', component: ChangeInfoPage },
     { path: '/error/:errorStatus/:message', name: 'error', component: ErrorPage },
+    { path: '/:pathMatch(.*)', component: Error404Page },
   ]
 })
 
@@ -44,10 +46,7 @@ router.beforeEach((to, from, next) => {
         }).join(''));
         return JSON.parse(jsonPayload);
       };
-
       const tokenData = decodePayload(payload);
-
-      console.log(tokenData);
       const currentTime = Math.floor(Date.now() / 1000);
       if (tokenData.exp < currentTime) {
         localStorage.removeItem("accessToken");

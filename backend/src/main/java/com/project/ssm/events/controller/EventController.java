@@ -7,7 +7,6 @@ import com.project.ssm.events.model.request.PostEventReq;
 import com.project.ssm.events.model.response.*;
 import com.project.ssm.events.service.EventService;
 import com.project.ssm.common.BaseResponse;
-import com.project.ssm.events.model.response.PatchReservationRes;
 import com.project.ssm.member.model.Member;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,7 +18,6 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 @RestController
 @RequestMapping("/calendar/event")
-@CrossOrigin("*")
 public class EventController {
     private final EventService eventService;
     // 일정 등록
@@ -30,10 +28,12 @@ public class EventController {
     }
 
     // 연간 일정 조회
-    @RequestMapping(method = RequestMethod.GET, value = "/{year}")
-    public ResponseEntity<Object> listEvents(@PathVariable int year){
-        Member member = (Member) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        return ResponseEntity.ok().body(eventService.listEvents(member, year));
+    @RequestMapping(method = RequestMethod.GET, value = "/list")
+    public ResponseEntity<Object> listEvents(
+            @RequestParam(value = "startDate") String startDate,
+            @RequestParam(value = "endDate") String endDate
+    ){
+        return ResponseEntity.ok().body(eventService.listEvents(startDate, endDate));
     }
 
     // 일정 상세 조회
@@ -69,7 +69,7 @@ public class EventController {
     }
 
     @RequestMapping(method = RequestMethod.GET, value = "/reservation/{meetingRoomIdx}/{date}")
-    public ResponseEntity listReservations(@PathVariable String date, @PathVariable Long meetingRoomIdx){
+    public ResponseEntity<Object> listReservations(@PathVariable String date, @PathVariable Long meetingRoomIdx){
         Member member = ((Member) SecurityContextHolder.getContext().getAuthentication().getPrincipal());
         return ResponseEntity.ok().body(eventService.listReservations(member, meetingRoomIdx, date));
     }

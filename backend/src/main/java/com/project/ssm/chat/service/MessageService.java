@@ -1,5 +1,6 @@
 package com.project.ssm.chat.service;
 
+
 import com.project.ssm.chat.exception.ChatRoomAccessException;
 import com.project.ssm.chat.exception.ChatRoomNotFoundException;
 import com.project.ssm.chat.exception.MessageAccessException;
@@ -12,19 +13,20 @@ import com.project.ssm.chat.model.request.UpdateMessageReq;
 import com.project.ssm.chat.repository.ChatRoomRepository;
 import com.project.ssm.chat.repository.MessageRepository;
 import com.project.ssm.chat.repository.RoomParticipantsRepository;
-import com.project.ssm.member.config.utils.JwtUtils;
+import com.project.ssm.notification.service.EmittersService;
 import com.project.ssm.member.exception.MemberNotFoundException;
 import com.project.ssm.member.model.Member;
 import com.project.ssm.member.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
-
 import java.util.List;
+
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class MessageService {
 
     private final SimpMessagingTemplate messagingTemplate;
@@ -32,21 +34,28 @@ public class MessageService {
     private final MemberRepository memberRepository;
     private final ChatRoomRepository chatRoomRepository;
     private final RoomParticipantsRepository roomParticipantsRepository;
+    private final EmittersService emittersService;
 
-    @Value("${jwt.secret-key}")
-    private String secretKey;
 
     public void sendMessage(String chatRoomId, SendMessageReq sendMessageDto) {
         if (!sendMessageDto.getMessage().isEmpty()) {
-
             Member member = memberRepository.findByMemberId(sendMessageDto.getMemberId()).orElseThrow(() ->
                     MemberNotFoundException.forMemberId(sendMessageDto.getMemberId()));
 
             ChatRoom chatRoom = chatRoomRepository.findByChatRoomId(chatRoomId).orElseThrow(() ->
                     ChatRoomNotFoundException.forNotFoundChatRoom());
-
+            messagingTemplate.convertAndSend("/sub/room/" + sendMessageDto.getChatRoomId(), sendMessageDto);
             messageRepository.save(Message.createMessage(sendMessageDto.getMessage(), member, chatRoom));
-            messagingTemplate.convertAndSend("/sub/room/" + chatRoomId, sendMessageDto);
+
+            List<RoomParticipants> memberIdsByChatRoomName = memberRepository.findMemberNameByChatRoomName(sendMessageDto.getChatRoomId());
+            if(!memberIdsByChatRoomName.isEmpty()){
+                for (RoomParticipants roomParticipants : memberIdsByChatRoomName) {
+                    String memberId = roomParticipants.getMember().getMemberId();
+                    if(!memberId.equals(sendMessageDto.getMemberId())){
+                        emittersService.sendAlarmToClients(memberId, sendMessageDto.getMemberName() +": "+ sendMessageDto.getMessage());
+                    }
+                }
+            }
         } else {
             throw MessageAccessException.forNotContent();
         }
@@ -67,11 +76,5 @@ public class MessageService {
         } else {
             throw MessageAccessException.forNotContent();
         }
-    }
-
-    public void enterRoom(String token) {
-        token = JwtUtils.checkJwtToken(token);
-        String memberId = JwtUtils.getMemberInfo(token, secretKey);
-        messagingTemplate.convertAndSend("/sub/room", memberId);
     }
 }

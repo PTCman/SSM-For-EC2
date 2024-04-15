@@ -37,9 +37,6 @@
               <button @click="memberStore.changeInfo()" class="btn btn-primary btn-user btn-block">
                 회원 정보 변경
               </button>
-              <div>
-                <button @click="notify">Notify !</button>
-              </div>
             </div>
           </div>
         </div>
@@ -68,19 +65,19 @@ export default {
   },
   methods: {
     handleFileUpload(event) {
-      const file = event.target.files[0]; // 사용자가 선택한 파일
-      this.memberStore.member.profileImage = file; // 파일을 Vue 모델에 할당
+      const file = event.target.files[0];
+      this.memberStore.member.profileImage = file;
 
       document.getElementById('fileName').textContent = file ? file.name : '선택된 파일 없음';
-      // 이미지 미리보기
       if (file && file.type.startsWith('image/')) {
         const reader = new FileReader();
 
         reader.onload = (e) => {
+          const imagePreview = document.getElementById('imagePreview');
           document.getElementById('imagePreview').src = e.target.result;
           document.getElementById('imagePreview').style.display = 'block';
-          imagePreview.style.width = '200px'; // 너비를 200px로 설정
-          imagePreview.style.height = '200px'; // 높이를 자동으로 조정
+          imagePreview.style.width = '200px';
+          imagePreview.style.height = '200px';
         };
 
         reader.readAsDataURL(file);
@@ -238,7 +235,6 @@ export default {
   background-clip: border-box;
   border: 1px solid #e3e6f0;
   border-radius: .35rem;
-  overflow-y: auto;
 }
 
 .o-hidden {
@@ -263,8 +259,6 @@ export default {
   min-height: 1px;
   /* 기존 설정 */
   padding: 1.25rem;
-  overflow-y: auto;
-  /* 세로 스크롤 활성화 */
 }
 
 .p-0 {

@@ -4,33 +4,29 @@
     <SidebarComponent></SidebarComponent>
     <section class="body">
       <section class="content">
-        <section class="content-header">
-          <article class="channel-content-header-details">
+        <section class="content-header" >
+          <article class="channel-content-header-details" v-show="isFullcalendarVisible">
+            <h4 class="channel-content-header-name">
+              {{ mainStore.member.name }} 님의 일정입니다. <i class="fas fa-star"></i>
+            </h4>            
+          </article>
+          <article class="channel-content-header-details" v-show="!isFullcalendarVisible">
             <h4 class="channel-content-header-name">
               {{ chatRoomName }} 채팅방 <i class="fas fa-star"></i>
             </h4>
-            <section class="content-header-icons">
-              <div>
-                <i class="far fa-user"></i><span class="content-header-counter">5</span>
-              </div>
-              <p class="content-header-text">
-                {{ chatRoomName }} 채팅방 입니다.
-              </p>
-            </section>
-
           </article>
           <button class="btn-borderless btn-slack info" id="info" type="button">
             <div @click="showChatting" v-show="isFullcalendarVisible"> 채팅 </div>
             <div @click="fullCalendarDetails" v-show="!isFullcalendarVisible"> 달력 </div>
           </button>
         </section>
-        <section class="feeds">
+        <section class="feeds" ref="getAllMessage">
           <div v-show="isFullcalendarVisible">
             <FullCalendarComponent></FullCalendarComponent>
           </div>
           <div v-show="!isFullcalendarVisible">
-            <div ref="getAllMessage">
-              <ChatBlockComponent v-for="(item, idx) in getAllMessage" :key="idx" v-bind:item="item" />
+            <div>
+              <ChatBlockComponent v-for="(item, idx) in messageStore.recvList" :key="idx" v-bind:item="item" />
             </div>
           </div>
         </section>
@@ -61,7 +57,8 @@
             </div>
             <div class="profile-container">
               <h5 id="profile-image">프로필 사진</h5>
-              <img :src="mainStore.member.profileImage" @error="getDefaultImage" alt="Profile Image" class="profile-img">
+              <img :src="mainStore.member.profileImage" @error="getDefaultImage" alt="Profile Image"
+                class="profile-img">
             </div>
           </article>
         </section>
@@ -107,20 +104,18 @@ import CalendarComponent from '@/components/CalendarComponent.vue';
 import FullCalendarComponent from '@/components/FullCalendarComponent.vue';
 import FilterComponent from '@/components/FilterComponent.vue';
 import MeetingRoomComponent from "@/components/MeetingRoomComponent.vue";
-
-import SockJS from "sockjs-client";
-import Stomp from "webstomp-client";
 import defaultImage from "../assets/basic_profile.jpg";
 
 import { mapStores } from "pinia";
 import { useMessageStore } from "@/stores/useMessageStore";
 import { useStompStore } from "@/stores/useStompStore";
 import { useMainStore } from "@/stores/useMainStore";
-import { mapActions, mapState } from "pinia";
+import { mapActions } from "pinia";
 import { useChatRoomStore } from "@/stores/useChatRoomStore";
+import {toast} from "vue3-toastify";
 
+const timeout = 10000;
 
-const backend = process.env.VUE_APP_API_ENDPOINT;
 export default {
   name: 'MainPage',
   components: {
@@ -146,29 +141,27 @@ export default {
     }
   },
   created() {
-    console.log("============기본 연결================");
-    const stompClient = this.initSock();
-    this.basicConnect(stompClient);
+    this.mainStore.loadMemberData();
+    this.mainStore.notificationData();
   },
   computed: {
-    ...mapState(useMessageStore, ['getAllMessage']),
-    ...mapStores(useMainStore, useMessageStore)
+    ...mapStores(useMainStore, useMessageStore, useStompStore)
   },
   methods: {
-    ...mapActions(useStompStore, ['basicConnect']),
     ...mapActions(useStompStore, ['roomConnect']),
     ...mapActions(useChatRoomStore, ['getRoomList']),
     getDefaultImage(e) {
       e.target.src = defaultImage;
     },
-    initSock() {
-      const server = `${backend}/chat`
-      console.log(`소켓 연결을 시도 중 서버 주소: ${server}`)
-      let socket = new SockJS(server);
-      this.stompClient = Stomp.over(socket);
-      return this.stompClient;
-    },
     sendMessage(e) {
+      if (this.$route.params.roomId === undefined) {
+        toast.error('채팅방에 먼저 접속해주세요', {
+          timeout: timeout,
+          limit: 2
+        });
+        $('#summernote').summernote('disable');
+      }
+
       this.message = $('#summernote').summernote('code')
       if (e.keyCode === 13 && this.memberId !== '' && this.message !== '') {
         this.message = this.message.replace(/<[^>]*>?/g, '');
@@ -177,35 +170,28 @@ export default {
       }
     },
     send(message) {
-      if (this.stompClient && this.stompClient.connected) {
-        const msg = {
-          memberId: this.memberId,
-          memberName: this.memberName,
-          message: message
-        };
-        this.stompClient.send("/send/room/" + this.$route.params.roomId, JSON.stringify(msg), {});
-        this.$nextTick(() => {
-          let message = this.$refs.getAllMessage;
-          message.scrollTo(0, message.scrollHeight);
-        });
-      }
+      const msg = {
+        chatRoomId: this.$route.params.roomId,
+        memberId: this.memberId,
+        memberName: this.memberName,
+        message: message
+      };
+      this.stompStore.chatStomp.send("/send/room/" + this.$route.params.roomId, JSON.stringify(msg), {});
+      this.$nextTick(() => {
+        let message = this.$refs.getAllMessage;
+        message.scrollTo(0, message.scrollHeight);
+      });
     },
     showChatting() {
-      if (localStorage.getItem("chatRoomId") !== null) {
-        this.messageStore.getChatList(localStorage.getItem("chatRoomId"), localStorage.getItem("accessToken"), 1, 10);
-      }
-
       this.isFullcalendarVisible = !this.isFullcalendarVisible;
     },
     setMember(token) {
       token = token.split(" ")[1];
-      const payload = token.split('.')[1]; // JWT의 두 번째 부분이 페이로드입니다.
+      const payload = token.split('.')[1];
       const tokenData = this.mainStore.base64UrlDecode(payload)
       this.memberId = tokenData.memberId;
       this.memberName = tokenData.memberName;
     },
-
-    // isDetailsVisible 값을 반전시켜 세부 정보의 표시 여부를 토글합니다
     aboutmeDetails() {
       this.isAboutmeVisible = !this.isAboutmeVisible;
     },
@@ -221,9 +207,13 @@ export default {
     },
     filterDetails() {
       this.isFilterVisible = !this.isFilterVisible;
+    },
+    scrollToBottom() {
+      this.$nextTick(() => {
+        const container = this.$refs.getAllMessage;
+        container.scrollTop = container.scrollHeight;
+      });
     }
-
-
   },
   mounted() {
     this.$loadScript("https://cdn.jsdelivr.net/npm/summernote@0.8.18/dist/summernote-lite.min.js")
@@ -245,36 +235,25 @@ export default {
         });
       })
       .catch(() => {
-        // Failed to fetch script
+        window.location.href = 'error/404'
       });
-    // this.getRoomList();
-    useChatRoomStore().getRoomList();
+    useChatRoomStore().getRoomList(this.$router);
     if (localStorage.getItem("accessToken") !== null) {
       this.setMember(localStorage.getItem("accessToken"));
     }
-    if (this.$route.params.chatRoomId !== undefined && localStorage.getItem("accessToken") !== undefined) {
-      this.chatRoomId = this.$route.params.chatRoomId;
-      // this.roomConnect(this.chatRoomId, localStorage.getItem("accessToken"));
-      useStompStore().roomConnect(this.chatRoomId, localStorage.getItem("accessToken"));
-    } else {
-      // this.basicConnect();
-    }
 
-    // 토큰 데이터 load
-    this.mainStore.loadMemberData();
-
-    // SSE 연결 함수
-    this.mainStore.notificaiton();
-
-    // 멤버정보를 불러온다.
     this.mainStore.readMember();
-
-    // 회의실정보를 불러온다.
     this.mainStore.readMeetingRooms();
-
-    // 프로필 이미지 불러오기
     this.mainStore.getProfileImage();
-  }
+  },
+  watch: {
+    getAllMessage() {
+      this.scrollToBottom();
+    }
+  },
+  updated() {
+    this.scrollToBottom();
+  },
 }
 </script>
 
@@ -1072,9 +1051,10 @@ body::-webkit-scrollbar-thumb {
 /* feeds */
 
 .feeds {
-  grid-area: main;
+  display: grid;
   overflow: auto;
   padding: 0.9375rem 0.3125rem 0.625rem 0.3125rem;
+  align-content: space-between;
 }
 
 .feeds2 {
@@ -1426,6 +1406,7 @@ body::-webkit-scrollbar-thumb {
 
   margin-left: 15px;
 }
+
 #profile-image {
   font-weight: bold;
 }
@@ -1487,14 +1468,16 @@ body::-webkit-scrollbar-thumb {
   height: 200px;
   margin-top: 10px;
 }
+
 .profile-container {
   display: flex;
   flex-direction: column;
-  align-items: center; 
+  align-items: center;
   padding-left: 1rem;
   margin-left: 100px;
   position: relative;
 }
+
 .about-detail {
   margin: 0.5rem;
   padding: 0.5rem;
@@ -1657,12 +1640,14 @@ body::-webkit-scrollbar-thumb {
 .user-detail {
   margin-bottom: 1rem;
 }
+
 .user-details {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
 
 }
+
 .user-name {
   font-weight: bold;
   display: flex;
@@ -1966,5 +1951,4 @@ body::-webkit-scrollbar-thumb {
 .chat-block-list {
   align-items: end;
 }
-
 </style>

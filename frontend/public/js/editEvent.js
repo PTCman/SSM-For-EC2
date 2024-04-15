@@ -100,8 +100,22 @@ var editEvent = function (event, element, view) {
                 "allDay":statusAllDay,
             }),
             success: function (response) {
-                console.log(response)
-                alert('수정되었습니다.')
+                if (response.code === 'CALENDAR_005') {
+                    alert('수정되었습니다.')
+                }
+            },
+            error: function (error) {
+                if(error.responseJSON.code === 'COMMON-001' || error.responseJSON.code === 'COMMON-002' || error.responseJSON.code === 'COMMON-003'){
+                    alert(error.responseJSON.message);
+                } else if (error.responseJSON.code === 'ACCOUNT-001' || error.responseJSON.code === 'ACCOUNT-002' || error.responseJSON.code === 'ACCOUNT-003' || error.responseJSON.code === 'ACCOUNT-004') {
+                    alert(error.responseJSON.message);
+                } else if (error.responseJSON.code === 'MEMBER-008') {
+                    alert(error.responseJSON.message);
+                } else if (error.responseJSON.code ==='CALENDAR_007' || error.responseJSON.code ==='CALENDAR_008') {
+                    alert(error.responseJSON.message);
+                } else {
+                    alert('오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+                }
             }
         });
 
@@ -126,10 +140,22 @@ var editEvent = function (event, element, view) {
             
         },
         success: function (response) {
-            console.log(response)           
-            alert('삭제되었습니다.');
-            $('#calendar').fullCalendar('removeEvents');
-            $('#calendar').fullCalendar('refetchEvents');
+            if (response.code === 'CALENDAR_006') {
+                alert('삭제되었습니다.');
+                $('#calendar').fullCalendar('removeEvents');
+                $('#calendar').fullCalendar('refetchEvents');
+            }
+        },
+        error: function (error) {
+            if(error.responseJSON.code === 'COMMON-001' || error.responseJSON.code === 'COMMON-002' || error.responseJSON.code === 'COMMON-003'){
+                alert(error.responseJSON.message);
+            } else if (error.responseJSON.code === 'ACCOUNT-001' || error.responseJSON.code === 'ACCOUNT-002' || error.responseJSON.code === 'ACCOUNT-003' || error.responseJSON.code === 'ACCOUNT-004') {
+                alert(error.responseJSON.message);
+            } else if (error.responseJSON.code === 'MEMBER-008') {
+                alert(error.responseJSON.message);
+            } else {
+                alert('오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+            }
         }
     });
 

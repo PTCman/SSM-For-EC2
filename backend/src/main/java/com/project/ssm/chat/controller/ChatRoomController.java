@@ -15,7 +15,6 @@ import javax.validation.Valid;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/chat")
-@CrossOrigin("*")
 @Slf4j
 public class ChatRoomController {
 
@@ -26,9 +25,9 @@ public class ChatRoomController {
         return ResponseEntity.ok().body(roomService.getRoomList(token));
     }
 
-    @RequestMapping(method = RequestMethod.GET, value = "/room/{roomId}")
-    public ResponseEntity<Object> getRoomInfo(@PathVariable String roomId) {
-        return ResponseEntity.ok().body(roomService.getRoomInfo(roomId));
+    @RequestMapping(method = RequestMethod.GET, value = "/room/{chatRoomId}")
+    public ResponseEntity<Object> getRoomInfo(@PathVariable String chatRoomId) {
+        return ResponseEntity.ok().body(roomService.getRoomInfo(chatRoomId));
     }
 
     @RequestMapping(method = RequestMethod.GET, value = "/room/chatlist")
@@ -38,24 +37,24 @@ public class ChatRoomController {
 
     @RequestMapping(method = RequestMethod.POST, value = "/room/create")
     public ResponseEntity<Object> createRoom(@RequestBody @Valid PostCreateRoomReq postCreateRoomReq) {
-        log.info("test = {}", SecurityContextHolder.getContext().getAuthentication().getPrincipal());
         Member member = (Member) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         return ResponseEntity.ok().body(roomService.createRoom(postCreateRoomReq, member));
     }
 
     @RequestMapping(method = RequestMethod.PATCH, value = "/room/update")
     public ResponseEntity<Object> updateRoom(@RequestBody @Valid PatchUpdateRoomReq patchUpdateRoomReq) {
-        return ResponseEntity.ok().body(roomService.updateRoom(patchUpdateRoomReq));
+        Member member = (Member) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        return ResponseEntity.ok().body(roomService.updateRoom(patchUpdateRoomReq, member));
     }
 
-    @RequestMapping(method = RequestMethod.PATCH, value = "/room/out/{chatRoomIdx}")
-    public ResponseEntity<Object> outRoom(@RequestHeader(value = "Authorization") String token, @PathVariable String chatRoomIdx) {
-        return ResponseEntity.ok().body(roomService.outRoom(token, chatRoomIdx));
+    @RequestMapping(method = RequestMethod.PATCH, value = "/room/out/{chatRoomId}")
+    public ResponseEntity<Object> outRoom(@RequestHeader(value = "Authorization") String token, @PathVariable String chatRoomId) {
+        return ResponseEntity.ok().body(roomService.outRoom(token, chatRoomId));
     }
 
-    @RequestMapping(method = RequestMethod.PATCH, value = "/room/delete/{chatRoomIdx}")
-    public ResponseEntity<Object> deleteRoom(@PathVariable String chatRoomIdx) {
-        return ResponseEntity.ok().body(roomService.deleteChatRoom(chatRoomIdx));
+    @RequestMapping(method = RequestMethod.PATCH, value = "/room/delete/{chatRoomId}")
+    public ResponseEntity<Object> deleteRoom(@PathVariable String chatRoomId) {
+        return ResponseEntity.ok().body(roomService.deleteChatRoom(chatRoomId));
     }
 
     @RequestMapping(method = RequestMethod.DELETE, value = "/message/delete/{messageIdx}")

@@ -1,6 +1,8 @@
 var draggedEventIsAllDay;
 var activeInactiveWeekends = true;
 var backend = window.apiEndpoint;
+var selectedChatRoomName = '';
+
 var calendar = $('#calendar').fullCalendar({
 
   /** ******************
@@ -106,10 +108,9 @@ var calendar = $('#calendar').fullCalendar({
    * ************** */
   events: function (start, end, timezone, callback) {
 
-    var currentYear = new Date().getFullYear();
     $.ajax({
       type: "get",
-      url: backend + "/calendar/event/" + currentYear,
+      url: backend + "/calendar/event/list",
       headers: {
         'Content-Type': 'application/json',
         'Authorization': localStorage.getItem('accessToken')
@@ -117,22 +118,30 @@ var calendar = $('#calendar').fullCalendar({
       datatype: "JSON",
       data: {
         // 화면이 바뀌면 Date 객체인 start, end 가 들어옴
-        // startDate : moment(start).format('YYYY-MM-DD'),
-        // endDate   : moment(end).format('YYYY-MM-DD')
+        startDate : moment(start).format('YYYY-MM-DD'),
+        endDate   : moment(end).format('YYYY-MM-DD')
       },
       success: function (response) {
         console.log(response)
-        if (response.result.length !== 0) {
-          var fixedDate = response.result.map(function (array) {
+        if (response.code === 'CALENDAR_002') {
+          let fixedDate = response.result.map(function (array) {
             if (array.allDay && array.start !== array.end) {
               array.end = moment(array.end).add(1, 'days'); // 이틀 이상 AllDay 일정인 경우 달력에 표기시 하루를 더해야 정상출력
             }
             return array;
           });
           callback(fixedDate);
-        } else {
-          // 콘솔 창이 아니라 다른 컴포넌트? 혹은 alert 사용하기
+        } else if (response.code === 'CALENDAR_003') {
           console.log(response.message);
+        }
+      },
+      error: function (error) {
+        if(error.responseJSON.code === 'COMMON-001' || error.responseJSON.code === 'COMMON-002' || error.responseJSON.code === 'COMMON-003'){
+          alert(error.responseJSON.message);
+        } else if (error.responseJSON.code === 'ACCOUNT-001' || error.responseJSON.code === 'ACCOUNT-002' || error.responseJSON.code === 'ACCOUNT-003' || error.responseJSON.code === 'ACCOUNT-004') {
+          alert(error.responseJSON.message);
+        } else {
+          alert('오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
         }
       }
     });
@@ -279,7 +288,12 @@ function getDisplayEventDate(event) {
 
   return displayEventDate;
 }
-
+function updateChatRoomName(chatRoomName) {
+  console.log(chatRoomName)
+  selectedChatRoomName = chatRoomName
+  // 여기에서 chatRoomName을 사용하는 로직을 추가합니다.
+  // 예: 외부 UI 업데이트, 서버로의 추가 요청 등
+}
 function filtering(event) {
   var show_username = true;
   var show_type = true;
@@ -287,7 +301,8 @@ function filtering(event) {
   var username = $('input:checkbox.filter:checked').map(function () {
     return $(this).val();
   }).get();
-  var types = $('#type_filter').val();
+  // var types = $('#type_filter').val();
+  var types = selectedChatRoomName;
 
   show_username = username.indexOf(event.username) >= 0;
 
@@ -298,6 +313,8 @@ function filtering(event) {
       show_type = types.indexOf(event.type) >= 0;
     }
   }
+
+
   return show_username && show_type;
 }
 
@@ -335,7 +352,6 @@ function calDateWhenDragnDrop(event) {
 
   //하루짜리 all day
   if (event.allDay && event.end === event.start) {
-    console.log('1111')
     newDates.startDate = moment(event.start._d).format('YYYY-MM-DD');
     newDates.endDate = newDates.startDate;
   }

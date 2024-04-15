@@ -11,13 +11,11 @@
               </div>
               <form class="user" enctype="multipart/form-data">
                 <div class="form-group">
-                  <!-- input group을 사용하여 인풋과 버튼을 하나의 그룹으로 묶습니다 -->
                   <div class="input-group">
                     <input v-model="memberStore.member.memberId" type="text" class="form-control form-control-user"
                       placeholder="아이디를 입력해주세요" :disabled="memberStore.checkId" >
                     <div class="input-group-append">
-                      <!-- 버튼의 타입을 'button'으로 설정하여 폼 제출을 방지합니다 -->
-                      <button type="button" class="btn btn-primary btn-user btn-block" @click="memberStore.checkIdDuplicate">중복
+                      <button type="button" class="btn btn-primary btn-user btn-block" @click="checkIdDuplicate">중복
                         검사</button>
                     </div>
                   </div>
@@ -50,13 +48,12 @@
                   <label for="fileUpload" class="btn btn-primary btn-user btn-block">프로필 이미지 선택</label>
                   <span id="fileName">선택된 파일 없음</span>
                 </div>
-                <!-- 이미지 미리보기 -->
                 <div id="imageContainer">
                   <img id="imagePreview" src="" alt="이미지 미리보기" style="max-width: 100%; height: auto; display: none;">
                 </div>
                 <hr>
               </form>
-              <button @click="memberStore.signup()" class="btn btn-primary btn-user btn-block">
+              <button @click="signup" class="btn btn-primary btn-user btn-block">
                 회원 가입
               </button>
               <hr>
@@ -85,12 +82,17 @@ export default {
     ...mapStores(useMemberStore),
   },
   methods: {
+    signup() {
+      this.memberStore.signup(this.$router);
+    },
+    checkIdDuplicate() {
+      this.memberStore.checkIdDuplicate(this.$router);
+    },
     handleFileUpload(event) {
-      const file = event.target.files[0]; // 사용자가 선택한 파일
-      this.memberStore.member.profileImage = file; // 파일을 Vue 모델에 할당
-
+      const file = event.target.files[0];
+      this.memberStore.member.profileImage = file;
       document.getElementById('fileName').textContent = file ? file.name : '선택된 파일 없음';
-      // 이미지 미리보기
+
       if (file && file.type.startsWith('image/')) {
         const reader = new FileReader();
 
@@ -98,8 +100,8 @@ export default {
           const imagePreview = document.getElementById('imagePreview');
           imagePreview.src = e.target.result;
           imagePreview.style.display = 'block';
-          imagePreview.style.width = '200px'; // 너비를 200px로 설정
-          imagePreview.style.height = '200px'; // 높이를 200px으로 조정
+          imagePreview.style.width = '200px';
+          imagePreview.style.height = '200px';
         };
 
         reader.readAsDataURL(file);
@@ -281,7 +283,6 @@ export default {
   background-clip: border-box;
   border: 1px solid #e3e6f0;
   border-radius: .35rem;
-  overflow-y: auto;
 }
 
 .o-hidden {
@@ -306,8 +307,7 @@ export default {
   min-height: 1px;
   /* 기존 설정 */
   padding: 1.25rem;
-  overflow-y: auto;
-  /* 세로 스크롤 활성화 */
+  
 }
 
 .p-0 {

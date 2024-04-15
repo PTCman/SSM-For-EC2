@@ -1,16 +1,11 @@
 package com.project.ssm.meetingroom.controller;
 
-import com.project.ssm.common.BaseResponse;
 import com.project.ssm.meetingroom.model.request.PostMeetingRoomReq;
-import com.project.ssm.meetingroom.model.response.*;
 import com.project.ssm.meetingroom.service.MeetingRoomService;
 import lombok.AllArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
-@CrossOrigin("*")
 @RestController
 @RequestMapping("/meetingroom")
 @AllArgsConstructor
@@ -21,7 +16,6 @@ public class MeetingRoomController {
     // 회의실 생성
     @RequestMapping(method = RequestMethod.POST, value = "/create")
     public ResponseEntity<Object> createMeetingRoom(@RequestBody PostMeetingRoomReq request){
-//        Member member = ((Member) SecurityContextHolder.getContext().getAuthentication().getPrincipal());
         return ResponseEntity.ok().body(meetingRoomService.createMeetingRoom(request));
     }
 
