@@ -1,5 +1,5 @@
 <template>
-  <div class="container">
+  <div class="container wrapper">
     <div class="row justify-content-center">
       <div class="col-xl-10 col-lg-12 col-md-9">
         <div class="card o-hidden border-0 shadow-lg my-5">
@@ -71,7 +71,7 @@ export default {
 
 <style scoped>
 /* 모바일 화면 크기에 대한 미디어 쿼리 */
-@media (max-width: 768px) {
+@media (max-width: 100px) {
   /* 로그인 화면을 감싸고 있는 컨테이너에 대한 스타일 */
   .container, .container-lg, .container-md, .container-xl {
     height: 100vh; /* 뷰포트의 높이와 동일하게 설정 */
@@ -310,7 +310,7 @@ form.user .form-control-user {
   font-size: .8rem;
   border-radius: 10rem;
   padding: 1.5rem 1rem;
-  width: 30rem;
+  width: 20rem;
 }
 
 .custom-control {
